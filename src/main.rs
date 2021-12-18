@@ -1,80 +1,63 @@
-use glfw::{Context, WindowEvent};
-
+extern crate glutin;
 extern crate gl;
-extern crate glfw;
+
+use glutin::{event::{Event, WindowEvent, KeyboardInput, ElementState::Pressed}, event_loop::ControlFlow};
+use rand::Rng;
 
 const WINDOW_WIDTH: u32 = 1280;
 const WINDOW_HEIGHT: u32 = 720;
 const TICKER_SPEED: f32 = 2.0;
 
+struct Color(f32, f32, f32, f32);
+
 fn main() {
-    let mut glfw = match glfw::init(glfw::FAIL_ON_ERRORS) {
-        Ok(glfw) => glfw,
-        Err(_) => {
-            panic!("Could not load GLFW, for some reason.");
-        },
-    };
+    let el = glutin::event_loop::EventLoop::new();
+    let wb = glutin::window::WindowBuilder::new()
+        .with_title("Hello world!")
+        .with_inner_size(glutin::dpi::LogicalSize::new(WINDOW_WIDTH, WINDOW_HEIGHT));
+    let windowed_context = glutin::ContextBuilder::new()
+        .with_vsync(true)
+        .with_multisampling(8)
+        .build_windowed(wb, &el)
+        .unwrap();
 
-    glfw.window_hint(glfw::WindowHint::ContextVersion(4, 6));
-    glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
-    glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
+    let windowed_context = unsafe { windowed_context.make_current().unwrap() };
 
-    let (mut window, events) =
-        glfw.with_primary_monitor(
-            |glfw, _| {
-                glfw.create_window(WINDOW_WIDTH, WINDOW_HEIGHT, "This is a testing window!", glfw::WindowMode::Windowed)
-            }
-        )
-            .expect("Window couldn't be created!");
+    gl::load_with(|ptr| windowed_context.get_proc_address(ptr));
+    let mut rng = rand::thread_rng();
+    
+    let mut current_color: Color = Color(0.3, 0.3, 0.3, 1.0);
 
-    window.set_key_polling(true);
-    window.make_current();
+    el.run(move |event, _, control_flow| {
+        *control_flow = ControlFlow::Wait;
 
-    glfw.make_context_current(Some(&window));
-    gl::load_with(|s| glfw.get_proc_address_raw(s));
-    unsafe {
-        gl::Viewport(0, 0, WINDOW_WIDTH.try_into().unwrap(), WINDOW_HEIGHT.try_into().unwrap());
-    }
-
-    let mut ticker = 0.0;
-    let mut flipflopper = false;
-
-    while !window.should_close() {
-
-        if ticker >= 255.0 {
-            flipflopper = true;
-        } else if ticker <= 0.0 {
-            flipflopper = false;
+        match event {
+            Event::LoopDestroyed => return,
+            Event::WindowEvent { event, .. } => match event {
+                WindowEvent::Resized(physical_size) => windowed_context.resize(physical_size),
+                WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+                _ => (),
+            },
+            Event::DeviceEvent { event, .. } => match event {
+                glutin::event::DeviceEvent::Button { state: Pressed, .. } => {
+                    current_color = Color(rng.gen(), rng.gen(), rng.gen(), 1.0);
+                    windowed_context.window().request_redraw();
+                },
+                glutin::event::DeviceEvent::Key(KeyboardInput { state: Pressed, virtual_keycode: key, .. }) => println!("Key pressed: {:?}", key),
+                _ => ()
+            },
+            Event::MainEventsCleared => {
+                current_color = Color(rng.gen(), rng.gen(), rng.gen(), 1.0);
+                windowed_context.window().request_redraw();
+            },
+            Event::RedrawRequested(_) => {
+                unsafe {
+                    gl::ClearColor(current_color.0, current_color.1, current_color.2, current_color.3);
+                    gl::Clear(gl::COLOR_BUFFER_BIT);
+                }
+                windowed_context.swap_buffers().unwrap();
+            },
+            _ => (),
         }
-
-        ticker = if flipflopper {
-            ticker - TICKER_SPEED
-        } else {
-            ticker + TICKER_SPEED
-        };
-
-        unsafe {
-            gl::ClearColor(ticker / 255.0, ticker / 255.0, 0.0 / 255.0, 1.0);
-            gl::Clear(gl::COLOR_BUFFER_BIT);
-        }
-
-        window.swap_buffers();
-
-        glfw.poll_events();
-        for (_, event) in glfw::flush_messages(&events) {
-            handle_event(&mut window, event);
-        }
-    }
-}
-
-fn handle_event(window: &mut glfw::Window, event: WindowEvent) {
-    match event {
-        WindowEvent::Key(glfw::Key::W, _, glfw::Action::Press, glfw::Modifiers::Control) => {
-            window.set_should_close(true);
-        },
-        WindowEvent::Key(key, _, glfw::Action::Press, modifiers) => {
-            println!("Pressed key: {:?}. Modifiers: {:?}.", key, modifiers);
-        },
-        _ => ()
-    }
+    });
 }
