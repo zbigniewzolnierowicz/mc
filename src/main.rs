@@ -1,7 +1,8 @@
-extern crate glutin;
+extern crate glutin as glut;
 extern crate gl;
+extern crate nalgebra as na;
 
-use glutin::{event::{Event, WindowEvent, KeyboardInput, ElementState::Pressed}, event_loop::ControlFlow};
+use glut::{event::{Event, WindowEvent, KeyboardInput, ElementState::Pressed}, event_loop::ControlFlow};
 use rand::Rng;
 
 const WINDOW_WIDTH: u32 = 1280;
@@ -11,11 +12,11 @@ const TICKER_SPEED: f32 = 2.0;
 struct Color(f32, f32, f32, f32);
 
 fn main() {
-    let el = glutin::event_loop::EventLoop::new();
-    let wb = glutin::window::WindowBuilder::new()
+    let el = glut::event_loop::EventLoop::new();
+    let wb = glut::window::WindowBuilder::new()
         .with_title("Hello world!")
-        .with_inner_size(glutin::dpi::LogicalSize::new(WINDOW_WIDTH, WINDOW_HEIGHT));
-    let windowed_context = glutin::ContextBuilder::new()
+        .with_inner_size(glut::dpi::LogicalSize::new(WINDOW_WIDTH, WINDOW_HEIGHT));
+    let windowed_context = glut::ContextBuilder::new()
         .with_vsync(true)
         .with_multisampling(8)
         .build_windowed(wb, &el)
@@ -39,11 +40,11 @@ fn main() {
                 _ => (),
             },
             Event::DeviceEvent { event, .. } => match event {
-                glutin::event::DeviceEvent::Button { state: Pressed, .. } => {
+                glut::event::DeviceEvent::Button { state: Pressed, .. } => {
                     current_color = Color(rng.gen(), rng.gen(), rng.gen(), 1.0);
                     windowed_context.window().request_redraw();
                 },
-                glutin::event::DeviceEvent::Key(KeyboardInput { state: Pressed, virtual_keycode: key, .. }) => println!("Key pressed: {:?}", key),
+                glut::event::DeviceEvent::Key(KeyboardInput { state: Pressed, virtual_keycode: key, .. }) => println!("Key pressed: {:?}", key),
                 _ => ()
             },
             Event::MainEventsCleared => {
