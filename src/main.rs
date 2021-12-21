@@ -6,7 +6,7 @@ use std::ffi::{CStr, CString};
 
 use glut::{event::{Event, WindowEvent}, event_loop::ControlFlow, dpi::PhysicalSize};
 
-const WINDOW_WIDTH: u32 = 1280;
+const WINDOW_WIDTH: u32 = 720;
 const WINDOW_HEIGHT: u32 = 720;
 
 fn main() {
@@ -34,9 +34,10 @@ fn main() {
     shader_program.set_used();
 
     let triangle_vertices: Vec<f32> = vec![
-        0.0, 0.5, 0.0,
-        -0.5, -0.5, 0.0,
-        0.5, 0.5, 0.0,
+        // x, y, z
+        0.0, 0.1, 0.0,
+        0.1, -0.1, 0.0,
+        -0.1, -0.1, 0.0,
     ];
 
     let mut vbo: gl::types::GLuint = 0;
@@ -64,8 +65,8 @@ fn main() {
             3, // Number of components of the parameter (vec3 has 3 components, etc.)
             gl::FLOAT, // data type
             gl::FALSE, // Should this parameter be normalized?
-            (3 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
-            std::ptr::null() // offset of the first component
+            (3 * std::mem::size_of::<f32>()) as gl::types::GLint, // The next element is 3 elements away from the starting point
+            std::ptr::null() // Starting point is at 0
         );
 
         gl::BindBuffer(gl::ARRAY_BUFFER, 0); // Unbind VBO
@@ -78,7 +79,13 @@ fn main() {
         match event {
             Event::LoopDestroyed => return,
             Event::WindowEvent { event, .. } => match event {
-                WindowEvent::Resized(physical_size) => windowed_context.resize(physical_size),
+                WindowEvent::Resized(physical_size) => {
+                    windowed_context.resize(physical_size);
+                    let PhysicalSize { width, height } = windowed_context.window().inner_size();
+                    unsafe {
+                        gl::Viewport(0, 0, width.try_into().unwrap(), height.try_into().unwrap());
+                    }
+                },
                 WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
                 _ => (),
             },
@@ -88,9 +95,7 @@ fn main() {
             Event::MainEventsCleared => {
             },
             Event::RedrawRequested(_) => {
-                let PhysicalSize { width, height } = windowed_context.window().inner_size();
                 unsafe {
-                    gl::Viewport(0, 0, width.try_into().unwrap(), height.try_into().unwrap());
                     gl::ClearColor(0.5, 0.5, 0.5, 1.0);
                     gl::Clear(gl::COLOR_BUFFER_BIT);
                     shader_program.set_used();
