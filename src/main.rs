@@ -33,6 +33,45 @@ fn main() {
 
     shader_program.set_used();
 
+    let triangle_vertices: Vec<f32> = vec![
+        0.0, 0.5, 0.0,
+        -0.5, -0.5, 0.0,
+        0.5, 0.5, 0.0,
+    ];
+
+    let mut vbo: gl::types::GLuint = 0;
+    unsafe {
+        gl::GenBuffers(1, &mut vbo); // Instantiate one buffer
+        gl::BindBuffer(gl::ARRAY_BUFFER, vbo); // Bind the buffer to be an array buffer to store the vertices
+        gl::BufferData( // Load the data into the buffer
+            gl::ARRAY_BUFFER, // target
+            (triangle_vertices.len() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr, // size of data in bytes,
+            triangle_vertices.as_ptr() as *const gl::types::GLvoid, // Pointer to data
+            gl::STATIC_DRAW // Data is used only once
+        );
+        gl::BindBuffer(gl::ARRAY_BUFFER, 0); // Unbind buffer, so we no longer have access to it
+    }
+
+    let mut vao: gl::types::GLuint = 0; // Creating a vertex array object
+    unsafe {
+        gl::GenVertexArrays(1, &mut vao); // Generate vertex array object
+        gl::BindVertexArray(vao); // Bind the vertex array object so we can work on it
+        gl::BindBuffer(gl::ARRAY_BUFFER, vbo); // Bind the vertex buffer object, because we need the data from it
+
+        gl::EnableVertexAttribArray(0); // Enable the Position parameter in triangle.vert
+        gl::VertexAttribPointer(
+            0, // Index of the parameter [(location = ?) in *.vert file]
+            3, // Number of components of the parameter (vec3 has 3 components, etc.)
+            gl::FLOAT, // data type
+            gl::FALSE, // Should this parameter be normalized?
+            (3 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
+            std::ptr::null() // offset of the first component
+        );
+
+        gl::BindBuffer(gl::ARRAY_BUFFER, 0); // Unbind VBO
+        gl::BindVertexArray(0); // Unbind VAO
+    }
+
     el.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
 
@@ -54,6 +93,13 @@ fn main() {
                     gl::Viewport(0, 0, width.try_into().unwrap(), height.try_into().unwrap());
                     gl::ClearColor(0.5, 0.5, 0.5, 1.0);
                     gl::Clear(gl::COLOR_BUFFER_BIT);
+                    shader_program.set_used();
+                    gl::BindVertexArray(vao);
+                    gl::DrawArrays(
+                        gl::TRIANGLES, // mode
+                        0, // starting index in the enabled arrays
+                        3 // number of indices to be rendered
+                    );
                 }
                 windowed_context.swap_buffers().unwrap();
             },
