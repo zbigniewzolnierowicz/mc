@@ -4,7 +4,7 @@ extern crate nalgebra as na;
 
 mod shader;
 
-use std::ffi::{CStr, CString};
+use std::ffi::CString;
 
 use glut::{event::{Event, WindowEvent}, event_loop::ControlFlow, dpi::PhysicalSize};
 use shader::{Shader, Program};
@@ -43,8 +43,8 @@ fn main() {
         0.0,  0.5, 0.0,   0.0, 0.0, 1.0,   // top
     ];
 
-    let mut vbo: gl::types::GLuint = 0;
-    unsafe {
+    let vbo = unsafe {
+        let mut vbo: gl::types::GLuint = 0;
         gl::GenBuffers(1, &mut vbo); // Instantiate one buffer
         gl::BindBuffer(gl::ARRAY_BUFFER, vbo); // Bind the buffer to be an array buffer to store the vertices
         gl::BufferData( // Load the data into the buffer
@@ -54,12 +54,12 @@ fn main() {
             gl::STATIC_DRAW // Data is used only once
         );
         gl::BindBuffer(gl::ARRAY_BUFFER, 0); // Unbind buffer, so we no longer have access to it
-    }
+        vbo
+    };
 
-    let mut vao: gl::types::GLuint = 0; // Creating a vertex array object
-    unsafe {
+    let vao = unsafe { // Creating a space to store the ID of the vertex array object
         // LOCATION
-
+        let mut vao: gl::types::GLuint = 0;
         gl::GenVertexArrays(1, &mut vao); // Generate vertex array object
         gl::BindVertexArray(vao); // Bind the vertex array object so we can work on it
         gl::BindBuffer(gl::ARRAY_BUFFER, vbo); // Bind the vertex buffer object, because we need the data from it
@@ -92,7 +92,8 @@ fn main() {
 
         gl::BindBuffer(gl::ARRAY_BUFFER, 0); // Unbind VBO
         gl::BindVertexArray(0); // Unbind VAO
-    }
+        vao
+    };
 
     el.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
