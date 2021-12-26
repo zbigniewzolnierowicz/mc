@@ -27,12 +27,19 @@ fn main() {
 
     let windowed_context = unsafe { windowed_context.make_current().unwrap() };
 
-    gl::load_with(|ptr| windowed_context.get_proc_address(ptr));
+    let gl = gl::Gl::load_with(|ptr| windowed_context.get_proc_address(ptr));
 
-    let vertex_shader = Shader::vertex_source(&CString::new(include_str!("triangle.vert")).unwrap()).unwrap();
-    let fragment_shader = Shader::fragment_source(&CString::new(include_str!("triangle.frag")).unwrap()).unwrap();
+    let vertex_shader = Shader::vertex_source(
+        &gl,
+        &CString::new(include_str!("triangle.vert")).unwrap()
+    ).unwrap();
 
-    let shader_program = Program::from_shaders(&[vertex_shader, fragment_shader]).unwrap();
+    let fragment_shader = Shader::fragment_source(
+        &gl,
+        &CString::new(include_str!("triangle.frag")).unwrap()
+    ).unwrap();
+
+    let shader_program = Program::from_shaders(&gl, &[vertex_shader, fragment_shader]).unwrap();
 
     shader_program.set_used();
 
@@ -45,27 +52,27 @@ fn main() {
 
     let vbo = unsafe {
         let mut vbo: gl::types::GLuint = 0;
-        gl::GenBuffers(1, &mut vbo); // Instantiate one buffer
-        gl::BindBuffer(gl::ARRAY_BUFFER, vbo); // Bind the buffer to be an array buffer to store the vertices
-        gl::BufferData( // Load the data into the buffer
+        gl.GenBuffers(1, &mut vbo); // Instantiate one buffer
+        gl.BindBuffer(gl::ARRAY_BUFFER, vbo); // Bind the buffer to be an array buffer to store the vertices
+        gl.BufferData( // Load the data into the buffer
             gl::ARRAY_BUFFER, // target
             (triangle_vertices.len() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr, // size of data in bytes,
             triangle_vertices.as_ptr() as *const gl::types::GLvoid, // Pointer to data
             gl::STATIC_DRAW // Data is used only once
         );
-        gl::BindBuffer(gl::ARRAY_BUFFER, 0); // Unbind buffer, so we no longer have access to it
+        gl.BindBuffer(gl::ARRAY_BUFFER, 0); // Unbind buffer, so we no longer have access to it
         vbo
     };
 
     let vao = unsafe { // Creating a space to store the ID of the vertex array object
         // LOCATION
         let mut vao: gl::types::GLuint = 0;
-        gl::GenVertexArrays(1, &mut vao); // Generate vertex array object
-        gl::BindVertexArray(vao); // Bind the vertex array object so we can work on it
-        gl::BindBuffer(gl::ARRAY_BUFFER, vbo); // Bind the vertex buffer object, because we need the data from it
+        gl.GenVertexArrays(1, &mut vao); // Generate vertex array object
+        gl.BindVertexArray(vao); // Bind the vertex array object so we can work on it
+        gl.BindBuffer(gl::ARRAY_BUFFER, vbo); // Bind the vertex buffer object, because we need the data from it
 
-        gl::EnableVertexAttribArray(0); // Enable the Position parameter in triangle.vert
-        gl::VertexAttribPointer(
+        gl.EnableVertexAttribArray(0); // Enable the Position parameter in triangle.vert
+        gl.VertexAttribPointer(
             0, // Index of the parameter [(location = ?) in *.vert file]
             3, // Number of components of the parameter (vec3 has 3 components, etc.)
             gl::FLOAT, // data type
@@ -78,8 +85,8 @@ fn main() {
 
         // COLOR
 
-        gl::EnableVertexAttribArray(1);
-        gl::VertexAttribPointer(
+        gl.EnableVertexAttribArray(1);
+        gl.VertexAttribPointer(
             1,
             3,
             gl::FLOAT,
@@ -90,8 +97,8 @@ fn main() {
 
         // END COLOR
 
-        gl::BindBuffer(gl::ARRAY_BUFFER, 0); // Unbind VBO
-        gl::BindVertexArray(0); // Unbind VAO
+        gl.BindBuffer(gl::ARRAY_BUFFER, 0); // Unbind VBO
+        gl.BindVertexArray(0); // Unbind VAO
         vao
     };
 
@@ -105,7 +112,7 @@ fn main() {
                     windowed_context.resize(physical_size);
                     let PhysicalSize { width, height } = windowed_context.window().inner_size();
                     unsafe {
-                        gl::Viewport(0, 0, width.try_into().unwrap(), height.try_into().unwrap());
+                        gl.Viewport(0, 0, width.try_into().unwrap(), height.try_into().unwrap());
                     }
                 },
                 WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
@@ -118,11 +125,11 @@ fn main() {
             },
             Event::RedrawRequested(_) => {
                 unsafe {
-                    gl::ClearColor(0.5, 0.5, 0.5, 1.0);
-                    gl::Clear(gl::COLOR_BUFFER_BIT);
+                    gl.ClearColor(0.5, 0.5, 0.5, 1.0);
+                    gl.Clear(gl::COLOR_BUFFER_BIT);
                     shader_program.set_used();
-                    gl::BindVertexArray(vao);
-                    gl::DrawArrays(
+                    gl.BindVertexArray(vao);
+                    gl.DrawArrays(
                         gl::TRIANGLES, // mode
                         0, // starting index in the enabled arrays
                         3 // number of indices to be rendered
